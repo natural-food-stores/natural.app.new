@@ -30,7 +30,7 @@ class _MainScreenState extends State<MainScreen> {
   // List of AppBar titles corresponding to each tab (remains the same)
   static const List<String> _appBarTitles = <String>[
     'Natural Food Store', // Home
-    'Explore Products', // Explore
+    'Explore', // Explore
     'Your Shopping Cart', // Cart
     'Your Profile', // Profile
   ];

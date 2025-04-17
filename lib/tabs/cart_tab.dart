@@ -3,44 +3,17 @@ import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../models/cart_item.dart';
 import '../../models/product.dart';
-
-// Removed '../main.dart' and '../screens/welcome_screen.dart' imports as they are not used here.
-// Removed 'package:supabase_flutter/supabase_flutter.dart' as it's not used here.
+import '../screens/checkout_screen.dart';
 
 class CartTab extends StatelessWidget {
   const CartTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Use WatchContext extension method for slightly cleaner provider access (optional)
-    // final cart = context.watch<CartProvider>();
-    // Or stick with Consumer:
     return Consumer<CartProvider>(
       builder: (context, cart, child) {
         // Removed the inner Scaffold's AppBar to avoid duplicate title
         return Scaffold(
-          // appBar: AppBar(  // <-- REMOVED THIS ENTIRE APPBAR SECTION
-          //   title: Text(
-          //     'My Cart (${cart.totalItemsCount} items)',
-          //     style: const TextStyle(fontWeight: FontWeight.w600),
-          //   ),
-          //   backgroundColor: Theme.of(context).canvasColor,
-          //   elevation: 1,
-          //   actions: [
-          //     if (cart.itemCount > 0)
-          //       IconButton(
-          //         icon: Icon(Icons.delete_sweep_outlined,
-          //             color: Colors.redAccent[100]),
-          //         tooltip: 'Clear Cart',
-          //         onPressed: () {
-          //           showDialog( // Dialog logic remains, but button invoking it is gone
-          //              context: context,
-          //              builder: (ctx) => AlertDialog(...) // Dialog code unchanged
-          //           );
-          //         },
-          //       ),
-          //   ],
-          // ),
           body: cart.itemCount == 0
               ? _buildEmptyCart(context) // Empty cart view
               : Column(
@@ -96,17 +69,6 @@ class CartTab extends StatelessWidget {
                 ?.copyWith(color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
-          // ---- REMOVED Browse Products Button ----
-          // const SizedBox(height: 30),
-          // ElevatedButton.icon(
-          //   onPressed: () {
-          //      // This logic might need to be handled differently if needed
-          //     DefaultTabController.maybeOf(context)?.animateTo(0);
-          //   },
-          //   icon: const Icon(Icons.storefront_outlined),
-          //   label: const Text('Browse Products'),
-          // )
-          // ---- End of Removed Button ----
         ],
       ),
     );
@@ -118,7 +80,6 @@ class CartTab extends StatelessWidget {
     final productId = item.id;
     final availableQuantity = cart.getAvailableQuantity(productId);
     final canAddMore = cart.canAddMore(productId);
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       child: Row(
@@ -264,7 +225,6 @@ class CartTab extends StatelessWidget {
   }) {
     final primaryColor = Theme.of(context).primaryColor;
     final disabledColor = Colors.grey[400];
-
     return InkWell(
       // Use InkWell for tap feedback if needed, otherwise Material
       onTap: isDisabled ? null : onPressed, // Disable tap if needed
@@ -293,7 +253,6 @@ class CartTab extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     const double deliveryFee = 50.0; // Example fee
     final double totalWithDelivery = cart.totalPrice + deliveryFee;
-
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
@@ -378,10 +337,11 @@ class CartTab extends StatelessWidget {
               onPressed: cart.itemCount == 0 // Disable if cart is empty
                   ? null
                   : () {
-                      // Placeholder for actual checkout navigation/logic
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Checkout not implemented yet!')),
+                      // Navigate to checkout screen
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const CheckoutScreen(),
+                        ),
                       );
                     },
               child: const Text('Proceed to Checkout'),

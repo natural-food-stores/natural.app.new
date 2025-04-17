@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart'; // To access supabase client
 import '../admin/admin_dashboard_screen.dart'; // Import admin screen
+import '../screens/order_history_screen.dart'; // Import the order history screen
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -12,6 +13,9 @@ class ProfileTab extends StatelessWidget {
     final userEmail =
         user?.email ?? 'Not logged in'; // Get email or default text
 
+    // Check if the user is an admin
+    final isAdmin = userEmail == 'natural.f00dst0r3s@gmail.com';
+
     // Define text styles for consistency
     final titleStyle = Theme.of(context).textTheme.titleMedium;
     final subtitleStyle = Theme.of(context)
@@ -22,7 +26,6 @@ class ProfileTab extends StatelessWidget {
         .textTheme
         .titleMedium
         ?.copyWith(fontSize: 16); // Slightly smaller for list tiles
-
     return Scaffold(
       // Use Scaffold for background color consistency if needed
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -62,7 +65,6 @@ class ProfileTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 30), // Space before options
-
           // --- General Options Section ---
           _buildSectionTitle(context, 'Account'),
           _buildProfileOption(
@@ -101,7 +103,6 @@ class ProfileTab extends StatelessWidget {
                       Text('Navigate to Payment Methods (Not Implemented)')));
             },
           ),
-
           const SizedBox(height: 20), // Space before next section
           _buildSectionTitle(context, 'Activity'),
           _buildProfileOption(
@@ -110,13 +111,15 @@ class ProfileTab extends StatelessWidget {
             title: 'Order History',
             subtitle: 'View your past orders',
             onTap: () {
-              // TODO: Navigate to Order History Screen
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content:
-                      Text('Navigate to Order History (Not Implemented)')));
+              // Navigate to Order History Screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OrderHistoryScreen(),
+                ),
+              );
             },
           ),
-
           const SizedBox(height: 20), // Space before next section
           _buildSectionTitle(context, 'Support'),
           _buildProfileOption(
@@ -142,10 +145,8 @@ class ProfileTab extends StatelessWidget {
                   content: Text('Send Feedback (Not Implemented)')));
             },
           ),
-
-          // --- Admin Panel Section (Conditional) ---
-          // Only show if user is logged in (basic check, real apps need role check)
-          if (user != null) ...[
+          // --- Admin Panel Section (Only show for admin@admin.com) ---
+          if (isAdmin) ...[
             const SizedBox(height: 20),
             const Divider(height: 1, thickness: 0.5),
             ListTile(
@@ -167,9 +168,7 @@ class ProfileTab extends StatelessWidget {
             ),
             const Divider(height: 1, thickness: 0.5),
           ],
-
           const SizedBox(height: 40), // Space at the bottom
-
           // Logout button is handled by the AppBar in MainScreen
         ],
       ),

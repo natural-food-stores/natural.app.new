@@ -8,7 +8,6 @@ import 'screens/welcome_screen.dart';
 import 'screens/main_screen.dart';
 import 'providers/cart_provider.dart'; // Your CartProvider path
 
-// TODO: Replace with your actual Supabase URL and Anon Key if necessary
 const String supabaseUrl = 'https://ubnqsjeciseaisghyljq.supabase.co';
 const String supabaseAnonKey =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVibnFzamVjaXNlYWlzZ2h5bGpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4ODIzODgsImV4cCI6MjA2MDQ1ODM4OH0.DFLvL55rZZNQ_mxAgjbrcGK7MWALjJtb0TA1dP0Fh3Y';
