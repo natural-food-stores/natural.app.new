@@ -10,16 +10,14 @@ class WelcomeScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      // Use a Stack to layer elements: Background -> Logo -> Content
       body: Stack(
         fit: StackFit.expand, // Make stack children fill the screen
         children: <Widget>[
           // 1. Background Image
           Image.asset(
-            'assets/welcome_background.jpg', // <-- Your new background image path
-            fit: BoxFit.cover, // Cover the entire screen
+            'assets/welcome_background.png', // <-- Your background image path
+            fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              // Placeholder if background image fails
               return Container(
                 color: Colors.grey[200],
                 child: const Center(
@@ -28,28 +26,15 @@ class WelcomeScreen extends StatelessWidget {
             },
           ),
 
-          // Optional: Add a semi-transparent overlay for better text readability
-          // Container(
-          //   decoration: BoxDecoration(
-          //     gradient: LinearGradient(
-          //       colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.5)],
-          //       begin: Alignment.topCenter,
-          //       end: Alignment.bottomCenter,
-          //     ),
-          //   ),
-          // ),
-
           // 2. Logo at the Top
           Positioned(
-            top: screenHeight *
-                0.1, // Adjust vertical position as needed (e.g., 10% from top)
+            top: screenHeight * 0.1,
             left: 0,
             right: 0,
             child: Image.asset(
               'assets/logo.png', // <-- YOUR LOGO IMAGE PATH
-              height: screenHeight * 0.15, // Adjust logo size as needed
+              height: screenHeight * 0.15,
               errorBuilder: (context, error, stackTrace) {
-                // Placeholder if logo image fails
                 return SizedBox(
                     height: screenHeight * 0.15,
                     child: Center(
@@ -62,12 +47,11 @@ class WelcomeScreen extends StatelessWidget {
 
           // 3. Content Area (Text and Button) at the Bottom
           Positioned(
-            bottom: screenHeight * 0.05, // Position content from the bottom
-            left: screenWidth * 0.06, // Horizontal padding
-            right: screenWidth * 0.06, // Horizontal padding
+            bottom: screenHeight * 0.05,
+            left: screenWidth * 0.06,
+            right: screenWidth * 0.06,
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min, // Column takes minimum space needed
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 // Welcome Text
@@ -79,7 +63,6 @@ class WelcomeScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     shadows: <Shadow>[
-                      // Add subtle shadow for better readability
                       Shadow(
                         offset: Offset(1.0, 1.0),
                         blurRadius: 3.0,
@@ -92,7 +75,6 @@ class WelcomeScreen extends StatelessWidget {
 
                 // Subtitle Text
                 const Text(
-                  // Using placeholder text as it's obscured in the image
                   'Get your groceries delivered fresh to your door',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -107,35 +89,18 @@ class WelcomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40), // Space between text and button
+                const SizedBox(height: 40),
 
-                // Get Started Button
+                // Get Started Button (Uses theme)
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFF6ABF4B), // Vibrant green color
-                    foregroundColor: Colors.white,
-                    minimumSize:
-                        const Size(double.infinity, 50), // Make button wide
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    elevation: 2,
-                  ),
                   onPressed: () {
-                    // Navigate to the Login Screen when button is pressed
                     Navigator.pushReplacement(
-                      // Use pushReplacement if you don't want users to go back to Welcome
                       context,
                       MaterialPageRoute(
                           builder: (context) => const LoginScreen()),
                     );
                   },
-                  child: const Text(
-                    'Get Started',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
+                  child: const Text('Get Started'), // Text style from theme
                 ),
               ],
             ),

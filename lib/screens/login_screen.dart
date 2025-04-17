@@ -1,9 +1,9 @@
-import 'package:flutter/gestures.dart'; // Import for RichText Taps
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'home_screen.dart';
+import 'main_screen.dart'; // Navigate to MainScreen on success
 import 'register_screen.dart'; // Link to Register
-import '../main.dart'; // Import main to access supabase client easily
+import '../main.dart'; // Access supabase client
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _passwordVisible = false; // Keep for password functionality
+  bool _passwordVisible = false;
 
   @override
   void dispose() {
@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
       });
@@ -36,30 +36,27 @@ class _LoginScreenState extends State<LoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        // Check if login was successful (user is not null)
         if (res.user != null && mounted) {
-          // Navigate to HomeScreen and remove login screen from stack
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(
+                builder: (context) => const MainScreen()), // Go to MainScreen
           );
         }
       } on AuthException catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.message),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+                content: Text(e.message),
+                backgroundColor: Theme.of(context).colorScheme.error),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('An unexpected error occurred.'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+                content: const Text('An unexpected error occurred.'),
+                backgroundColor: Theme.of(context).colorScheme.error),
           );
         }
       } finally {
@@ -78,60 +75,46 @@ class _LoginScreenState extends State<LoginScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      // No AppBar
-      backgroundColor: Colors.white, // Set background to white
       body: SafeArea(
-        // Use SafeArea to avoid status bar overlap
         child: SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               // 1. Top Image Section
-              Container(
+              SizedBox(
                 height: screenHeight * 0.35, // Adjust height as needed
                 width: double.infinity,
                 child: Image.asset(
-                  'assets/groceries_banner.png', // <-- Replace with your image path
+                  'assets/groceries_banner.png', // <-- Login/Register banner image
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    // Placeholder if image fails to load
                     return Container(
                       color: Colors.grey[300],
                       child: const Center(
-                          child: Text('Image not found\nAdd to assets/')),
+                          child: Text('Banner not found\nAdd to assets/')),
                     );
                   },
                 ),
               ),
-              // Add some space between image and text
               const SizedBox(height: 24),
 
               Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth *
-                        0.06), // ~24 logical pixels on average screens
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // 2. Text Section
                     const Text(
                       'Welcome back!',
-                      textAlign: TextAlign.left,
                       style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       'Get your groceries with Natural Food Store',
-                      textAlign: TextAlign.left,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
                     ),
                     const SizedBox(height: 32),
 
@@ -140,22 +123,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Email Field
                           TextFormField(
                             controller: _emailController,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
+                              // Uses theme
                               hintText: 'Email',
-                              prefixIcon: const Icon(Icons.email_outlined,
-                                  color: Colors.grey),
-                              filled: true,
-                              fillColor:
-                                  Colors.grey[100], // Light grey background
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                                borderSide: BorderSide.none, // No border line
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16, horizontal: 16),
+                              prefixIcon: Icon(Icons.email_outlined),
                             ),
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
@@ -168,37 +141,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-
-                          // Password Field
                           TextFormField(
                             controller: _passwordController,
                             decoration: InputDecoration(
+                              // Uses theme
                               hintText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline,
-                                  color: Colors.grey),
-                              // You can add the visibility toggle back if needed
-                              // suffixIcon: IconButton(
-                              //   icon: Icon(
-                              //     _passwordVisible
-                              //     ? Icons.visibility_off_outlined
-                              //     : Icons.visibility_outlined,
-                              //     color: Colors.grey,
-                              //   ),
-                              //   onPressed: () {
-                              //     setState(() {
-                              //        _passwordVisible = !_passwordVisible;
-                              //      });
-                              //    },
-                              //  ),
-                              filled: true,
-                              fillColor:
-                                  Colors.grey[100], // Light grey background
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                                borderSide: BorderSide.none, // No border line
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                // Visibility toggle
+                                icon: Icon(
+                                    _passwordVisible
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: Colors.grey),
+                                onPressed: () => setState(
+                                    () => _passwordVisible = !_passwordVisible),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16, horizontal: 16),
                             ),
                             obscureText: !_passwordVisible,
                             validator: (value) {
@@ -217,53 +175,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // 4. Buttons Section
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(
-                            0xFF6ABF4B), // Vibrant green color from image
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        elevation: 2, // Subtle shadow
-                      ),
+                      // Uses theme
                       onPressed: _isLoading ? null : _signIn,
                       child: _isLoading
                           ? const SizedBox(
-                              height: 24, // Match text size
+                              height: 24,
                               width: 24,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 3, color: Colors.white),
-                            )
-                          : const Text('Login with Email',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                                  strokeWidth: 3, color: Colors.white))
+                          : const Text('Login with Email'),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(
-                            0xFF6ABF4B), // Vibrant green color from image
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        elevation: 2, // Subtle shadow
-                      ),
-                      onPressed: () {
-                        // Navigate to Register Screen
-                        Navigator.push(
+                      // Uses theme
+                      onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const RegisterScreen()),
-                        );
-                      },
-                      child: const Text('Register with Email',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600)),
+                              builder: (context) => const RegisterScreen())),
+                      child: const Text('Register with Email'),
                     ),
-                    const SizedBox(height: 32), // Space before footer
+                    const SizedBox(height: 32),
 
                     // 5. Footer Text Section
                     RichText(
@@ -280,10 +211,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87),
                             recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                // TODO: Implement navigation or show terms
-                                print('Terms of Service Tapped!');
-                              },
+                              ..onTap = () =>
+                                  print('Terms Tapped!'), // TODO: Show terms
                           ),
                           const TextSpan(text: ' & '),
                           TextSpan(
@@ -292,15 +221,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87),
                             recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                // TODO: Implement navigation or show policy
-                                print('Privacy Policy Tapped!');
-                              },
+                              ..onTap = () =>
+                                  print('Policy Tapped!'), // TODO: Show policy
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24), // Bottom padding
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
