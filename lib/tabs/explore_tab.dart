@@ -1,6 +1,7 @@
-// screens/tabs/explore_tab.dart
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart'; // Import Shimmer
+import 'package:flutter_map/flutter_map.dart'; // Import flutter_map
+import 'package:latlong2/latlong.dart'; // Import latlong2 for coordinates
 import '../services/product_service.dart';
 import '../models/product.dart';
 import '../widgets/product_card.dart';
@@ -17,6 +18,9 @@ class _ExploreTabState extends State<ExploreTab> {
   String? _selectedCategory;
   Future<List<Product>>? _filteredProductsFuture;
   final ProductService _productService = ProductService();
+
+  // Store coordinates
+  final LatLng _storeLocation = const LatLng(19.100298, 72.890014);
 
   // --- Category Definitions with Color ---
   // Structure: List<Map<String, dynamic>> containing name, icon, color
@@ -54,8 +58,6 @@ class _ExploreTabState extends State<ExploreTab> {
       'color': Colors.blueGrey
     },
   ];
-  // No need for _categoryIcons map anymore
-  // --------------------------------------------------------------
 
   // --- Methods (remain the same) ---
   void _selectCategory(String category) {
@@ -72,7 +74,6 @@ class _ExploreTabState extends State<ExploreTab> {
       _filteredProductsFuture = null;
     });
   }
-  // ---------------
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +81,130 @@ class _ExploreTabState extends State<ExploreTab> {
       // Consistent background color
       backgroundColor: Theme.of(context).colorScheme.background,
       body: _selectedCategory == null
-          ? _buildCategoryGrid(context)
+          ? _buildCategoryGridWithMap(context)
           : _buildFilteredProductList(context),
+    );
+  }
+
+  // --- Widget Builder for Category Grid with Map ---
+  Widget _buildCategoryGridWithMap(BuildContext context) {
+    return Column(
+      children: [
+        // Map section
+        SizedBox(
+          height: 200, // Adjust height as needed
+          child: Stack(
+            children: [
+              // OpenStreetMap
+              FlutterMap(
+                options: MapOptions(
+                  center: _storeLocation,
+                  zoom: 15.0,
+                  interactiveFlags: InteractiveFlag.all,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: _storeLocation,
+                        builder: (ctx) => Column(
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40.0,
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 2,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                'Natural Food Store',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Optional: Add a title or info overlay on the map
+              Positioned(
+                top: 40,
+                left: 16,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.store, size: 18, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Visit Our Store',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Title for categories section
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Text(
+                'Browse Categories',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
+          ),
+        ),
+
+        // Categories grid
+        Expanded(
+          child: _buildCategoryGrid(context),
+        ),
+      ],
     );
   }
 
@@ -89,7 +212,6 @@ class _ExploreTabState extends State<ExploreTab> {
   Widget _buildCategoryGrid(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-
     return GridView.builder(
       padding: const EdgeInsets.all(16.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -106,7 +228,6 @@ class _ExploreTabState extends State<ExploreTab> {
         final String name = category['name'];
         final IconData icon = category['icon'];
         final Color color = category['color'];
-
         return Card(
           elevation: 2.0, // Subtle elevation
           clipBehavior: Clip.antiAlias,
@@ -158,7 +279,6 @@ class _ExploreTabState extends State<ExploreTab> {
       },
     );
   }
-  // -----------------------------------------
 
   // --- Widget Builder for Filtered Product List (Beautified) ---
   Widget _buildFilteredProductList(BuildContext context) {
@@ -168,7 +288,6 @@ class _ExploreTabState extends State<ExploreTab> {
             (cat) => cat['name'] == _selectedCategory,
             orElse: () => {'color': theme.colorScheme.primary})['color']
         as Color; // Get color for potential use
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -210,7 +329,6 @@ class _ExploreTabState extends State<ExploreTab> {
         // Optional: Add a subtle divider below the header
         const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
         // -----------------------------------------
-
         // --- FutureBuilder for Products ---
         Expanded(
           child: FutureBuilder<List<Product>>(
@@ -229,7 +347,6 @@ class _ExploreTabState extends State<ExploreTab> {
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
                 return _buildListEmptyWidget(context);
               }
-
               // Success State - Display Products
               final products = snapshot.data!;
               return GridView.builder(
@@ -253,7 +370,6 @@ class _ExploreTabState extends State<ExploreTab> {
       ],
     );
   }
-  // ---------------------------------------------
 
   // --- Helper: Shimmer for Product List ---
   Widget _buildProductListShimmer(BuildContext context) {
@@ -262,7 +378,6 @@ class _ExploreTabState extends State<ExploreTab> {
     const spacing = 12.0;
     const aspectRatio = 0.75;
     const shimmerItemCount = 6; // Number of shimmer cards
-
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
