@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
 
 import '../tabs/home_tab.dart';
 import '../tabs/explore_tab.dart';
@@ -18,7 +19,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0; // State variable to track selected tab index
 
-  // List of the widgets representing the content for each tab
+  // List of the widgets representing the content for each tab (remains the same)
   static const List<Widget> _widgetOptions = <Widget>[
     HomeTab(),
     ExploreTab(),
@@ -26,7 +27,7 @@ class _MainScreenState extends State<MainScreen> {
     ProfileTab(),
   ];
 
-  // List of AppBar titles corresponding to each tab
+  // List of AppBar titles corresponding to each tab (remains the same)
   static const List<String> _appBarTitles = <String>[
     'Natural Food Store', // Home
     'Explore Products', // Explore
@@ -34,15 +35,16 @@ class _MainScreenState extends State<MainScreen> {
     'Your Profile', // Profile
   ];
 
-  // Function called when a navigation bar item is tapped
+  // Function called when a navigation bar item is tapped (remains the same)
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  // Function for handling logout
+  // Function for handling logout (remains the same)
   Future<void> _handleLogout() async {
+    // ... (logout code remains exactly the same)
     try {
       await supabase.auth.signOut();
       if (mounted) {
@@ -65,52 +67,78 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // final colors = Theme.of(context).colorScheme; // We'll use specific colors
+
     return Scaffold(
       appBar: AppBar(
-        // Uses theme
+        // ... (AppBar code remains the same)
         title: Text(_appBarTitles[_selectedIndex]),
         automaticallyImplyLeading: false,
         actions: [
           if (_selectedIndex == 3) // Show Logout only on Profile tab
             IconButton(
-              icon: const Icon(Icons.logout_outlined), // Use outlined icon
+              icon: const Icon(Icons.logout_outlined),
               tooltip: 'Logout',
               onPressed: _handleLogout,
             )
         ],
       ),
-      // Use IndexedStack to preserve the state of each tab when switching
       body: IndexedStack(
+        // Body remains the same
         index: _selectedIndex,
         children: _widgetOptions,
       ),
-      // The Bottom Navigation Bar itself (Uses theme)
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
+
+      // ---- GNav with GREEN Background and WHITE Active Tab ----
+      bottomNavigationBar: Container(
+        // Set the background of the whole bar container to green
+        color: Colors.green.shade700, // Main background is now green
+        // You could use Colors.green, Colors.green.shade800 etc.
+
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
+            child: GNav(
+              gap: 8,
+              iconSize: 24,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              duration: const Duration(milliseconds: 400),
+
+              // --- Inverted Color Configuration ---
+              tabBackgroundColor: Colors
+                  .white, // Background color of the ACTIVE tab button is now WHITE
+              activeColor: Colors.green
+                  .shade700, // Text and icon color of the ACTIVE tab button (green to contrast with white background)
+              // You could also use Colors.black87 here if preferred: activeColor: Colors.black87,
+              color: Colors
+                  .white70, // Text and icon color of INACTIVE tab buttons (white/grey to contrast with green background)
+              // --- End of Inverted Color Configuration ---
+
+              tabs: const [
+                GButton(
+                  icon: Icons.home_outlined,
+                  text: 'Home',
+                ),
+                GButton(
+                  icon: Icons.explore_outlined,
+                  text: 'Explore',
+                ),
+                GButton(
+                  icon: Icons.shopping_cart_outlined,
+                  text: 'Cart',
+                ),
+                GButton(
+                  icon: Icons.person_outline,
+                  text: 'Profile',
+                ),
+              ],
+              selectedIndex: _selectedIndex,
+              onTabChange: _onItemTapped,
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore_outlined),
-            activeIcon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart_outlined),
-            activeIcon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        ),
       ),
+      // ---- End of GNav ----
     );
   }
 }

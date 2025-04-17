@@ -1,95 +1,80 @@
-// screens/tabs/cart_tab.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/cart_provider.dart'; // Adjust path if needed
-import '../../models/cart_item.dart'; // Adjust path if needed
-import '../../models/product.dart'; // Import Product model
+import '../../providers/cart_provider.dart';
+import '../../models/cart_item.dart';
+import '../../models/product.dart';
+
+// Removed '../main.dart' and '../screens/welcome_screen.dart' imports as they are not used here.
+// Removed 'package:supabase_flutter/supabase_flutter.dart' as it's not used here.
 
 class CartTab extends StatelessWidget {
   const CartTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Use WatchContext extension method for slightly cleaner provider access (optional)
+    // final cart = context.watch<CartProvider>();
+    // Or stick with Consumer:
     return Consumer<CartProvider>(
       builder: (context, cart, child) {
-        // ... (rest of build method remains the same) ...
+        // Removed the inner Scaffold's AppBar to avoid duplicate title
         return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              'My Cart (${cart.totalItemsCount} items)', // Use totalItemsCount
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            backgroundColor: Theme.of(context).canvasColor,
-            elevation: 1,
-            actions: [
-              if (cart.itemCount > 0)
-                IconButton(
-                  icon: Icon(Icons.delete_sweep_outlined,
-                      color: Colors.redAccent[100]),
-                  tooltip: 'Clear Cart',
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Confirm Action'),
-                        content: const Text(
-                            'Are you sure you want to remove all items from your cart?'),
-                        actions: <Widget>[
-                          TextButton(
-                            child: const Text('Cancel'),
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                            },
-                          ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                                foregroundColor: Colors.red),
-                            child: const Text('Clear All'),
-                            onPressed: () {
-                              cart.clearCart();
-                              Navigator.of(ctx).pop();
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
+          // appBar: AppBar(  // <-- REMOVED THIS ENTIRE APPBAR SECTION
+          //   title: Text(
+          //     'My Cart (${cart.totalItemsCount} items)',
+          //     style: const TextStyle(fontWeight: FontWeight.w600),
+          //   ),
+          //   backgroundColor: Theme.of(context).canvasColor,
+          //   elevation: 1,
+          //   actions: [
+          //     if (cart.itemCount > 0)
+          //       IconButton(
+          //         icon: Icon(Icons.delete_sweep_outlined,
+          //             color: Colors.redAccent[100]),
+          //         tooltip: 'Clear Cart',
+          //         onPressed: () {
+          //           showDialog( // Dialog logic remains, but button invoking it is gone
+          //              context: context,
+          //              builder: (ctx) => AlertDialog(...) // Dialog code unchanged
+          //           );
+          //         },
+          //       ),
+          //   ],
+          // ),
           body: cart.itemCount == 0
-              ? _buildEmptyCart(context)
+              ? _buildEmptyCart(context) // Empty cart view
               : Column(
+                  // View when cart has items
                   children: [
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         itemCount: cart.items.length,
                         itemBuilder: (ctx, i) {
-                          final item = cart.items.values.toList()[i];
-                          // Pass item and cart provider
+                          // Using Map entries is often safer than relying on list index
+                          final entry = cart.items.entries.elementAt(i);
+                          final item = entry.value;
+                          // final productId = entry.key; // If needed elsewhere
                           return _buildCartItemTile(context, item, cart);
                         },
                       ),
                     ),
-                    _buildCartSummary(context, cart),
+                    // Only show summary if cart is not empty
+                    if (cart.itemCount > 0) _buildCartSummary(context, cart),
                   ],
                 ),
         );
-        // ...
       },
     );
   }
 
-  // --- _buildEmptyCart remains the same ---
   Widget _buildEmptyCart(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons
-                .remove_shopping_cart_outlined, // Or your preferred empty cart icon
+            Icons.remove_shopping_cart_outlined,
             size: 80,
             color: Colors.grey[400],
           ),
@@ -111,29 +96,28 @@ class CartTab extends StatelessWidget {
                 ?.copyWith(color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 30),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Attempt to switch tab - may need adjustment based on your exact navigation setup
-              DefaultTabController.maybeOf(context)?.animateTo(0);
-            },
-            icon: const Icon(Icons.storefront_outlined),
-            label: const Text('Browse Products'),
-          )
+          // ---- REMOVED Browse Products Button ----
+          // const SizedBox(height: 30),
+          // ElevatedButton.icon(
+          //   onPressed: () {
+          //      // This logic might need to be handled differently if needed
+          //     DefaultTabController.maybeOf(context)?.animateTo(0);
+          //   },
+          //   icon: const Icon(Icons.storefront_outlined),
+          //   label: const Text('Browse Products'),
+          // )
+          // ---- End of Removed Button ----
         ],
       ),
     );
   }
-  // --------------------------------------
 
-  // Widget for displaying a single cart item tile
   Widget _buildCartItemTile(
       BuildContext context, CartItem item, CartProvider cart) {
-    // Changed signature back
     final textTheme = Theme.of(context).textTheme;
-
-    // Use the item directly, productId is item.id
     final productId = item.id;
+    final availableQuantity = cart.getAvailableQuantity(productId);
+    final canAddMore = cart.canAddMore(productId);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -148,7 +132,8 @@ class CartTab extends StatelessWidget {
               height: 70,
               child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
                   ? FadeInImage.assetNetwork(
-                      placeholder: 'assets/images/placeholder.png',
+                      placeholder:
+                          'assets/images/placeholder.png', // Ensure you have this placeholder
                       image: item.imageUrl!,
                       fit: BoxFit.cover,
                       imageErrorBuilder: (context, error, stackTrace) =>
@@ -157,6 +142,7 @@ class CartTab extends StatelessWidget {
                                   size: 30, color: Colors.grey)),
                     )
                   : Container(
+                      // Placeholder for missing image URL
                       color: Colors.grey[200],
                       child: const Center(
                           child: Icon(Icons.image_not_supported,
@@ -164,7 +150,6 @@ class CartTab extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 15),
-
           // Item Details and Quantity Controls
           Expanded(
             child: Column(
@@ -178,10 +163,25 @@ class CartTab extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 5),
-                Text(
-                  'Rs.${item.price.toStringAsFixed(2)}',
-                  style:
-                      textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                Row(
+                  children: [
+                    Text(
+                      'Rs.${item.price.toStringAsFixed(2)}',
+                      style: textTheme.bodyMedium
+                          ?.copyWith(color: Colors.grey[700]),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      // Display available quantity dynamically
+                      'In stock: $availableQuantity',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: availableQuantity > 0
+                            ? Colors.green[700]
+                            : Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -190,13 +190,12 @@ class CartTab extends StatelessWidget {
                     _buildQuantityButton(
                       context: context,
                       icon: Icons.remove,
-                      onPressed: () =>
-                          cart.decreaseItemQuantity(productId), // Use productId
+                      onPressed: () => cart.decreaseItemQuantity(productId),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
                       child: Text(
-                        '${item.quantity}',
+                        '${item.quantity}', // Display current quantity in cart
                         style: textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
@@ -204,32 +203,50 @@ class CartTab extends StatelessWidget {
                     _buildQuantityButton(
                       context: context,
                       icon: Icons.add,
-                      onPressed: () {
-                        // *** FIXED SNIPPET ***
-                        // Reconstruct Product using CartItem details, including category
-                        final product = Product(
-                          id: productId, // Use productId from item.id
-                          name: item.name,
-                          price: item.price,
-                          category: item
-                              .category, // <-- FIXED: Use category from CartItem
-                          quantity: 1, // Placeholder ok here
-                          imageUrl: item.imageUrl,
-                          createdAt: DateTime.now(), // Placeholder ok here
-                        );
-                        cart.addItem(product);
-                        // **********************
-                      },
+                      // Check if more can be added before enabling button
+                      onPressed: canAddMore
+                          ? () {
+                              // Recreate a basic Product object to pass to addItem
+                              final product = Product(
+                                id: productId,
+                                name: item.name,
+                                price: item.price,
+                                category: item
+                                    .category, // Assuming CartItem has category
+                                quantity:
+                                    availableQuantity, // Pass available stock
+                                imageUrl: item.imageUrl,
+                                createdAt: DateTime
+                                    .now(), // Or item.createdAt if available
+                              );
+                              cart.addItem(product);
+                            }
+                          : null, // Disable if cannot add more
+                      isDisabled: !canAddMore,
                     ),
-                    const Spacer(),
+                    const Spacer(), // Pushes delete icon to the end
+                    // Remove Item Button (Individual)
                     InkWell(
-                      onTap: () => cart.removeItem(productId), // Use productId
+                      onTap: () => cart.removeItem(productId),
                       child: Icon(Icons.delete_outline,
                           color: Colors.redAccent[100], size: 22),
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ],
                 ),
+                // Show warning if max quantity reached
+                if (!canAddMore &&
+                    availableQuantity > 0) // Only show if item *is* in stock
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      'Maximum available quantity reached',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: Colors.orange[700], // Use orange for warning
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -238,64 +255,75 @@ class CartTab extends StatelessWidget {
     );
   }
 
-  // --- _buildQuantityButton remains the same ---
+  // Helper widget for Quantity +/- buttons
   Widget _buildQuantityButton({
     required BuildContext context,
     required IconData icon,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
+    bool isDisabled = false,
   }) {
+    final primaryColor = Theme.of(context).primaryColor;
+    final disabledColor = Colors.grey[400];
+
     return InkWell(
-      onTap: onPressed,
+      // Use InkWell for tap feedback if needed, otherwise Material
+      onTap: isDisabled ? null : onPressed, // Disable tap if needed
       borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(
+              color: isDisabled
+                  ? Colors.grey[300]!
+                  : primaryColor.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(4),
+          color:
+              isDisabled ? Colors.grey[200] : null, // Background when disabled
         ),
-        child: Icon(icon, size: 18, color: Theme.of(context).primaryColor),
+        child: Icon(
+          icon,
+          size: 18,
+          color: isDisabled ? disabledColor : primaryColor,
+        ),
       ),
     );
   }
-  // ------------------------------------------
 
-  // --- _buildCartSummary remains the same ---
-  // (Using totalPrice getter from CartProvider now)
   Widget _buildCartSummary(BuildContext context, CartProvider cart) {
     final textTheme = Theme.of(context).textTheme;
-    // Hardcoded delivery fee for example
-    const double deliveryFee = 50.0;
+    const double deliveryFee = 50.0; // Example fee
     final double totalWithDelivery = cart.totalPrice + deliveryFee;
 
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Theme.of(context).cardColor, // Use cardColor for background
         boxShadow: [
           BoxShadow(
+            // Subtle shadow at the top
             color: Colors.black.withOpacity(0.08),
             spreadRadius: 0,
             blurRadius: 10,
-            offset: const Offset(0, -3),
+            offset: const Offset(0, -3), // Shadow points upwards
           ),
         ],
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
+          topLeft: Radius.circular(16), // Rounded top corners
           topRight: Radius.circular(16),
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min, // Takes minimum space needed
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Subtotal (${cart.totalItemsCount} items):', // Use totalItemsCount
+                'Subtotal (${cart.totalItemsCount} items):', // Use totalItemsCount for accuracy
                 style: textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
               ),
               Text(
-                'Rs.${cart.totalPrice.toStringAsFixed(2)}', // Use totalPrice
+                'Rs.${cart.totalPrice.toStringAsFixed(2)}',
                 style:
                     textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
@@ -316,7 +344,7 @@ class CartTab extends StatelessWidget {
               ),
             ],
           ),
-          const Divider(height: 24),
+          const Divider(height: 24), // Visual separator
           // Total
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -327,21 +355,30 @@ class CartTab extends StatelessWidget {
                     textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
-                'Rs.${totalWithDelivery.toStringAsFixed(2)}', // Calculate total
+                'Rs.${totalWithDelivery.toStringAsFixed(2)}',
                 style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor),
+                    color:
+                        Theme.of(context).primaryColor // Highlight total price
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 18),
           SizedBox(
-            width: double.infinity,
+            width: double.infinity, // Button takes full width
             child: ElevatedButton(
-              onPressed: cart.itemCount == 0
+              style: ElevatedButton.styleFrom(
+                // Consider adding style like padding, shape
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: cart.itemCount == 0 // Disable if cart is empty
                   ? null
                   : () {
-                      // Disable if cart is empty
+                      // Placeholder for actual checkout navigation/logic
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text('Checkout not implemented yet!')),
@@ -354,5 +391,4 @@ class CartTab extends StatelessWidget {
       ),
     );
   }
-  // ------------------------------------
-} // End of CartTab class
+}
