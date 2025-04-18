@@ -38,6 +38,8 @@ flutter:
     - assets/banner1.jpg
     - assets/banner2.jpg
     - assets/banner3.jpg
+    - assets/logo.png
+    - assets/welcome_background.jpg
 
 fonts:
     - family: BeVietnamPro  # Choose a name for your font family

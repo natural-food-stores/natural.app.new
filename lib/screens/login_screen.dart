@@ -51,13 +51,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Theme.of(context).colorScheme.error),
           );
         }
-      } catch (e) {
+      } catch (error, stackTrace) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: const Text('An unexpected error occurred.'),
-                backgroundColor: Theme.of(context).colorScheme.error),
+              content: const Text('An unexpected error occurred.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
+          // Log the actual error and stack trace
+          print('An unexpected error occurred: $error');
+          print('Stack trace: $stackTrace');
+          // You might also want to use a more sophisticated logging mechanism here
         }
       } finally {
         if (mounted) {

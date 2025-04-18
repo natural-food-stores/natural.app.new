@@ -15,7 +15,7 @@ class WelcomeScreen extends StatelessWidget {
         children: <Widget>[
           // 1. Background Image
           Image.asset(
-            'assets/welcome_background.png', // <-- Your background image path
+            'assets/welcome_background.jpg', // <-- Your background image path
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               return Container(

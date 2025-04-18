@@ -53,18 +53,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (res.user != null && mounted) {
         // Successfully registered (or confirmation sent)
         // Option 1: Go directly to main screen (if email confirmation is disabled or handled implicitly)
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-          (route) => false,
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Registration successful! Please check your email to confirm.'),
+              backgroundColor: Colors.orangeAccent),
         );
-        // Option 2: Show confirmation message and go to Login (if email confirmation is required)
-        /*
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Registration successful! Please check your email to confirm.'), backgroundColor: Colors.orangeAccent),
-         );
-         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
-         */
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()));
       }
     } on AuthException catch (e) {
       if (mounted) {
