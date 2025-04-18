@@ -9,6 +9,83 @@ class ProductService {
   final _supabase = supabase;
   final String _productsTable = 'products';
   final String _storageBucket = 'productimages'; // Match actual bucket name
+// Add these methods to your ProductService class
+
+  Future<void> updateProduct({
+    required String id,
+    required String name,
+    required String description,
+    required double price,
+    required int quantity,
+    required String category,
+    String? imageUrl,
+  }) async {
+    try {
+      final Map<String, dynamic> productData = {
+        'name': name,
+        'description': description,
+        'price': price,
+        'quantity': quantity,
+        'category': category,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // Only update the image URL if a new one is provided
+      if (imageUrl != null) {
+        productData['image_url'] = imageUrl;
+      }
+
+      final response =
+          await _supabase.from('products').update(productData).eq('id', id);
+
+      // Supabase returns null for successful updates
+      if (response != null) {
+        throw Exception('Failed to update product');
+      }
+    } catch (e) {
+      debugPrint('Error updating product: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteProduct(String id) async {
+    try {
+      // First, get the product to check if it has an image
+      final product =
+          await _supabase.from('products').select().eq('id', id).single();
+
+      // Delete the product from the database
+      final response = await _supabase.from('products').delete().eq('id', id);
+
+      // Supabase returns null for successful deletes
+      if (response != null) {
+        throw Exception('Failed to delete product');
+      }
+
+      // If the product had an image, delete it from storage
+      // Note: This is optional and depends on your storage policy
+      if (product != null &&
+          product['image_url'] != null &&
+          product['image_url'].toString().isNotEmpty) {
+        // Extract the file path from the URL
+        final uri = Uri.parse(product['image_url']);
+        final pathSegments = uri.pathSegments;
+
+        if (pathSegments.length >= 2) {
+          // The last two segments should be the bucket and the file name
+          final filePath =
+              '${pathSegments[pathSegments.length - 2]}/${pathSegments[pathSegments.length - 1]}';
+
+          await _supabase.storage
+              .from('product-images') // Replace with your bucket name
+              .remove([filePath]);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting product: $e');
+      rethrow;
+    }
+  }
 
   // --- Existing fetchProducts method ---
   Future<List<Product>> fetchProducts() async {

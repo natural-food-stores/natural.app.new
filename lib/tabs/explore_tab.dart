@@ -149,38 +149,6 @@ class _ExploreTabState extends State<ExploreTab> {
                   ),
                 ],
               ),
-              // Optional: Add a title or info overlay on the map
-              Positioned(
-                top: 40,
-                left: 16,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.store, size: 18, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Visit Our Store',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
