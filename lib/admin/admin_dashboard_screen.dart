@@ -21,8 +21,6 @@ class AdminDashboardScreen extends StatelessWidget {
                     builder: (context) => const AddProductScreen()),
               );
             },
-            // Optional: Style differently from main theme if needed
-            // style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
           ),
           // TODO: Add more admin functions here (View Products, Orders, etc.)
         ),

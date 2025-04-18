@@ -78,16 +78,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _stateController.text = savedAddress.state;
         _zipCodeController.text = savedAddress.zipCode;
       });
-      // Consider removing the snackbar here or making it less intrusive
-      // if loading the address is expected behaviour.
-      /*
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: const Text('Your saved address has been loaded'),
-               // ... snackbar styling ...
-             ),
-           );
-           */
     }
   }
 
@@ -376,10 +366,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // Keep helper widgets: _buildEmptyCart, _buildAddressForm,
-  // _buildPaymentMethodSelection, _buildPaymentOption, _buildOrderSummary
-  // as they were, unless further UI changes are needed.
-  // ... (Paste your existing implementations of these widgets here) ...
   Widget _buildEmptyCart() {
     return Center(
       child: Column(

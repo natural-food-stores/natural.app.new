@@ -7,7 +7,7 @@ class CartItem {
   final double price;
   final String? imageUrl;
   int quantity;
-  final String category; // <-- ADDED: Store the category
+  final String category;
 
   CartItem({
     required this.id,
@@ -15,7 +15,7 @@ class CartItem {
     required this.price,
     this.imageUrl,
     required this.quantity,
-    required this.category, // <-- ADDED: Make it required
+    required this.category,
   });
 
   // Update fromProduct factory
@@ -26,7 +26,7 @@ class CartItem {
       price: product.price,
       imageUrl: product.imageUrl,
       quantity: quantity,
-      category: product.category, // <-- ADDED: Copy category from product
+      category: product.category,
     );
   }
 
