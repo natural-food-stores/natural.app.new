@@ -12,9 +12,10 @@ import '../providers/cart_provider.dart';
 import '../providers/address_provider.dart';
 import '../models/address.dart';
 import '../models/cart_item.dart'; // Import your CartItem model
+import 'checkout_address_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
-  const CheckoutScreen({Key? key}) : super(key: key);
+  const CheckoutScreen({super.key});
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -34,7 +35,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _zipCodeController = TextEditingController();
 
   // Payment method state
-  String _selectedPaymentMethod = 'Cash on Delivery'; // Default selection
+  String _selectedPaymentMethod = 'Cash on Delivery';
 
   // Loading state for placing order
   bool _isPlacingOrder = false;
@@ -43,6 +44,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final supabase = Supabase.instance.client;
   final uuid = const Uuid();
   final random = Random(); // For payment simulation
+
+  Address? selectedAddress;
 
   @override
   void initState() {
@@ -124,8 +127,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Saves the current address form details using AddressProvider
   // Note: This saves the *current form data* as a *new address*.
   // It doesn't update an existing one directly from here.
-  void _saveAddress() {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _saveAddress() async {
+    // Validate required fields
+    if (_nameController.text.isEmpty ||
+        _phoneController.text.isEmpty ||
+        _addressLine1Controller.text.isEmpty ||
+        _cityController.text.isEmpty ||
+        _stateController.text.isEmpty ||
+        _zipCodeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Please fill all required address fields.')),
@@ -133,64 +142,81 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    final addressProvider =
-        Provider.of<AddressProvider>(context, listen: false);
-    final currentUser = supabase.auth.currentUser; // Get current user
-
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('You must be logged in to save an address.')),
-      );
-      return;
-    }
-
-    // Create the Address object - Use Uuid for ID and fetch userId
-    final newAddress = Address(
-      id: uuid.v4(), // Generate a new unique ID for this address
-      userId: currentUser.id, // Assign the logged-in user's ID
-      name: _nameController.text,
-      phone: _phoneController.text,
-      addressLine1: _addressLine1Controller.text,
-      addressLine2: _addressLine2Controller.text.isEmpty
-          ? null
-          : _addressLine2Controller.text,
-      city: _cityController.text,
-      state: _stateController.text,
-      zipCode: _zipCodeController.text,
-      // Let AddressProvider handle setting the default status logic internally.
-      // Setting isDefault: true here might be desired, or you could add a checkbox.
-      // For now, let's assume saving always tries to make it default if none exists.
-      isDefault: true, // Let the provider logic handle conflicts
-    );
-
-    // Use a try-catch block for the async operation
     try {
-      // Call the provider's addAddress method
-      addressProvider.addAddress(newAddress).then((_) {
-        // Check if mounted before showing SnackBar
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Address saved successfully'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              margin: const EdgeInsets.all(10),
-            ),
-          );
-        }
-      }).catchError((error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to save address: $error')),
-          );
-        }
-      });
+      final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+      final currentUser = supabase.auth.currentUser;
+
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('You must be logged in to save an address.')),
+        );
+        return;
+      }
+
+      // Create the Address object
+      final newAddress = Address(
+        id: uuid.v4(),
+        userId: currentUser.id,
+        name: _nameController.text,
+        phone: _phoneController.text,
+        addressLine1: _addressLine1Controller.text,
+        addressLine2: _addressLine2Controller.text.isEmpty
+            ? null
+            : _addressLine2Controller.text,
+        city: _cityController.text,
+        state: _stateController.text,
+        zipCode: _zipCodeController.text,
+        isDefault: true,
+      );
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // Save the address
+      await addressProvider.addAddress(newAddress);
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Address saved successfully'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)),
+            margin: const EdgeInsets.all(10),
+          ),
+        );
+
+        // Clear form fields
+        _nameController.clear();
+        _phoneController.clear();
+        _addressLine1Controller.clear();
+        _addressLine2Controller.clear();
+        _cityController.clear();
+        _stateController.clear();
+        _zipCodeController.clear();
+
+        // Navigate back to profile tab
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if open
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred while saving address: $e')),
+          SnackBar(
+            content: Text('Error saving address: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -338,7 +364,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final String orderItemsJson = jsonEncode(orderItemsList);
 
       // 7. Prepare Order Data Map for Supabase 'orders' table
-      const double deliveryFee = 100.0; // Example fee - make dynamic if needed
+      const double deliveryFee = 50.0; // Example fee - make dynamic if needed
       final double subtotal = cartProvider.totalPrice;
       final double totalAmount = subtotal + deliveryFee;
 
@@ -541,378 +567,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // --- Builds the main Stepper UI ---
-  @override
-  Widget build(BuildContext context) {
-    // Listen to cart provider to react to changes (e.g., cart becomes empty)
-    final cartProvider = Provider.of<CartProvider>(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Checkout'),
-        elevation: 1,
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
-            Theme.of(context).colorScheme.surface,
-      ),
-      body: cartProvider.itemCount == 0 // Use itemCount getter for efficiency
-          ? _buildEmptyCart() // Show empty cart message
-          : Stepper(
-              type: StepperType.vertical, // Or StepperType.horizontal
-              currentStep: _currentStep,
-              physics:
-                  const ClampingScrollPhysics(), // Good for nested scrolling
-              onStepContinue: _isPlacingOrder
-                  ? null
-                  : _handleStepContinue, // Disable while loading
-              onStepCancel: _isPlacingOrder
-                  ? null
-                  : _handleStepCancel, // Disable while loading
-              // Custom Controls Builder for better button layout & loading indicator
-              controlsBuilder: (context, details) {
-                final bool isLastStep =
-                    _currentStep == 1; // Steps are 0 (Address), 1 (Payment)
-
-                return Padding(
-                  padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          // Use the provided details.onStepContinue which maps to our _handleStepContinue
-                          onPressed: details.onStepContinue,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor:
-                                Theme.of(context).colorScheme.onPrimary,
-                          ),
-                          child: (_isPlacingOrder && isLastStep)
-                              ? const SizedBox(
-                                  // Show loader inside button on last step
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2.5, color: Colors.white),
-                                )
-                              : Text(isLastStep ? 'PLACE ORDER' : 'CONTINUE'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Show Cancel/Back button only if not loading
-                      if (!_isPlacingOrder)
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: details
-                                .onStepCancel, // Uses our _handleStepCancel
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
-                              side: BorderSide(
-                                  color: Theme.of(context).colorScheme.outline),
-                            ),
-                            child: Text(_currentStep == 0
-                                ? 'CANCEL'
-                                : 'BACK TO ADDRESS'),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-              steps: [
-                Step(
-                  title: const Text('Shipping Address'),
-                  content: _buildAddressForm(),
-                  isActive: _currentStep >= 0,
-                  // Mark as complete if we moved past this step
-                  state:
-                      _currentStep > 0 ? StepState.complete : StepState.indexed,
-                ),
-                Step(
-                  title: const Text('Payment & Summary'),
-                  content: _buildPaymentAndSummary(), // Combined widget
-                  isActive: _currentStep >= 1,
-                  // State can be editing or indexed based on current step
-                  state:
-                      _currentStep >= 1 ? StepState.editing : StepState.indexed,
-                ),
-              ],
-            ),
-    );
-  }
-
-  // Handles Stepper Continue logic
-  void _handleStepContinue() {
-    if (_currentStep == 0) {
-      // Moving from Address to Payment
-      if (_formKey.currentState!.validate()) {
-        // Address form is valid, move to the next step
-        if (mounted) {
-          setState(() => _currentStep += 1);
-        }
-      } else {
-        // Address form has errors
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Please fix the errors in the address form.')),
-        );
-      }
-    } else if (_currentStep == 1) {
-      // On the Payment step, 'Continue' means Place Order
-      _placeOrder(); // Trigger the order placement process
-    }
-  }
-
-  // Handles Stepper Cancel/Back logic
-  void _handleStepCancel() {
-    if (_currentStep > 0) {
-      // Go back from Payment step to Address step
-      if (mounted) {
-        setState(() => _currentStep -= 1);
-      }
-    } else {
-      // On the first step (Address), 'Cancel' leaves the checkout screen
-      Navigator.of(context).pop();
-    }
-  }
-
-  // --- Builds the UI for an empty cart ---
-  Widget _buildEmptyCart() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(30.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.shopping_cart_checkout_rounded,
-                size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 24),
-            Text('Your Cart is Empty',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      // Adjusted style
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                    ),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            Text(
-                'Looks like you haven\'t added anything yet. Start shopping to proceed to checkout!',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      // Adjusted style
-                      color: Colors.grey[600],
-                      height: 1.5,
-                    ),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop(); // Go back
-              },
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
-              label: const Text('BACK TO SHOP'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Builds the Address Form ---
-  Widget _buildAddressForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextFormField(
-            controller: _nameController,
-            decoration: _inputDecoration(
-                labelText: 'Full Name', icon: Icons.person_outline),
-            textCapitalization: TextCapitalization.words,
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Please enter your name'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _phoneController,
-            decoration: _inputDecoration(
-                labelText: 'Phone Number', icon: Icons.phone_outlined),
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(
-                  10) // Adjust length as needed for your region
-            ],
-            validator: (value) {
-              if (value == null || value.isEmpty)
-                return 'Please enter phone number';
-              if (value.length < 10)
-                return 'Enter a valid 10-digit number'; // Adjust validation
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _addressLine1Controller,
-            decoration: _inputDecoration(
-                labelText: 'Address Line 1 (House No, Building, Street)',
-                icon: Icons.home_outlined),
-            textCapitalization: TextCapitalization.sentences,
-            maxLines: null, // Allows multiple lines if needed
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Please enter your address'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _addressLine2Controller,
-            decoration: _inputDecoration(
-                labelText: 'Address Line 2 (Area, Landmark - Optional)',
-                icon: Icons.apartment_outlined),
-            textCapitalization: TextCapitalization.sentences,
-            maxLines: null,
-            // No validator needed for optional field
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _cityController,
-            decoration: _inputDecoration(
-                labelText: 'City', icon: Icons.location_city_outlined),
-            textCapitalization: TextCapitalization.words,
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Please enter your city'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            // State and Zip side-by-side
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _stateController,
-                  decoration: _inputDecoration(
-                      labelText: 'State', icon: Icons.map_outlined),
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Enter state'
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                    controller: _zipCodeController,
-                    decoration: _inputDecoration(
-                        labelText: 'ZIP / Pincode',
-                        icon: Icons.pin_drop_outlined),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(
-                          6) // Common length for India
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Enter ZIP';
-                      if (value.length != 6)
-                        return 'Enter a valid 6-digit ZIP'; // Adjust if needed
-                      return null;
-                    }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Save Address Button - Allows users to save the entered address
-          // without necessarily placing the order immediately.
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _saveAddress,
-              icon: const Icon(Icons.save_alt_rounded, size: 18),
-              label: const Text('SAVE THIS ADDRESS FOR LATER'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                side: BorderSide(
-                    color:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ),
-          const SizedBox(
-              height: 16), // Add space before the end of the step content
-        ],
-      ),
-    );
-  }
-
-  // Helper for consistent Input Decoration styling
-  InputDecoration _inputDecoration(
-      {required String labelText, required IconData icon}) {
-    return InputDecoration(
-      labelText: labelText,
-      prefixIcon: Icon(icon, size: 20),
-      border: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(8)),
-      ),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-          borderSide: BorderSide(color: Colors.grey.shade400)),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-          borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary, width: 1.5)),
-      errorBorder: OutlineInputBorder(
-          // Style for error state
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-          borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.error, width: 1.5)),
-      focusedErrorBorder: OutlineInputBorder(
-          // Style for error state when focused
-          borderRadius: const BorderRadius.all(Radius.circular(8)),
-          borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.error, width: 2.0)),
-      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-      // isDense: true, // Can make field slightly more compact if needed
-    );
-  }
-
-  // --- Builds the combined Payment Method Selection and Order Summary UI ---
+  // Add this widget to build the payment options section
   Widget _buildPaymentAndSummary() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildOrderSummary(), // Shows Subtotal, Delivery, Total
-        const SizedBox(height: 24),
         const Text('Select Payment Method',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
 
-        // --- Payment Options ---
+        // Payment Options
         _buildPaymentOption(
           title: 'Cash on Delivery',
           subtitle: 'Pay when you receive your order',
-          icon: Icons.local_shipping_outlined, // More relevant icon
+          icon: Icons.local_shipping_outlined,
           value: 'Cash on Delivery',
           isSelected: _selectedPaymentMethod == 'Cash on Delivery',
           onTap: () {
             if (mounted && !_isPlacingOrder) {
-              // Prevent changing while placing order
               setState(() => _selectedPaymentMethod = 'Cash on Delivery');
             }
           },
@@ -921,81 +593,69 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
         _buildPaymentOption(
           title: 'Credit/Debit Card',
-          subtitle: 'Pay securely online (Simulated)', // Indicate simulation
+          subtitle: 'Pay securely online',
           icon: Icons.credit_card,
           value: 'Credit/Debit Card',
           isSelected: _selectedPaymentMethod == 'Credit/Debit Card',
-          // isDisabled: true, // <-- REMOVED: Enable the option
           onTap: () {
             if (mounted && !_isPlacingOrder) {
               setState(() => _selectedPaymentMethod = 'Credit/Debit Card');
             }
-            // Removed the "unavailable" snackbar
           },
         ),
         const SizedBox(height: 12),
 
         _buildPaymentOption(
           title: 'UPI Payment',
-          subtitle: 'Pay using your UPI app (Simulated)', // Indicate simulation
-          icon: Icons.currency_rupee_rounded, // Alternative UPI icon
+          subtitle: 'Pay using your UPI app',
+          icon: Icons.currency_rupee_rounded,
           value: 'UPI Payment',
           isSelected: _selectedPaymentMethod == 'UPI Payment',
-          // isDisabled: true, // <-- REMOVED: Enable the option
           onTap: () {
             if (mounted && !_isPlacingOrder) {
               setState(() => _selectedPaymentMethod = 'UPI Payment');
             }
-            // Removed the "unavailable" snackbar
           },
         ),
-        const SizedBox(
-            height: 16), // Add space before the end of the step content
-        // Add more payment options here if needed
       ],
     );
   }
 
-  // --- Builds a single Payment Option Tile ---
+  // Add this helper widget to build individual payment options
   Widget _buildPaymentOption({
     required String title,
     required String subtitle,
     required IconData icon,
-    required String value, // Unique value for this option
+    required String value,
     required bool isSelected,
-    bool isDisabled = false, // Keep for potential future use
+    bool isDisabled = false,
     required VoidCallback onTap,
   }) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final Color effectiveColor =
-        isDisabled ? Colors.grey.shade500 : colorScheme.onSurface;
+    final Color effectiveColor = isDisabled ? Colors.grey.shade500 : colorScheme.onSurface;
 
     return Material(
       color: isDisabled
-          ? Colors.grey.shade100 // Disabled background
+          ? Colors.grey.shade100
           : (isSelected
-              ? colorScheme.primaryContainer
-                  .withOpacity(0.3) // Selected background
-              : colorScheme.surfaceVariant
-                  .withOpacity(0.2)), // Default background
+              ? colorScheme.primaryContainer.withOpacity(0.3)
+              : colorScheme.surfaceVariant.withOpacity(0.2)),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: isDisabled ? null : onTap, // Disable tap if needed
+        onTap: isDisabled ? null : onTap,
         borderRadius: BorderRadius.circular(12),
         splashColor: colorScheme.primary.withOpacity(0.1),
         highlightColor: colorScheme.primary.withOpacity(0.05),
         child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 14), // Adjusted padding
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDisabled
                   ? Colors.grey.shade300
                   : (isSelected
-                      ? colorScheme.primary // Selected border
-                      : colorScheme.outlineVariant
-                          .withOpacity(0.5)), // Default border
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant.withOpacity(0.5)),
               width: isSelected ? 1.5 : 1.0,
             ),
           ),
@@ -1015,19 +675,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       title,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600, // Slightly bolder title
+                        fontWeight: FontWeight.w600,
                         color: effectiveColor,
                       ),
                     ),
                     if (subtitle.isNotEmpty) ...[
-                      // Show subtitle only if provided
                       const SizedBox(height: 3),
                       Text(
                         subtitle,
                         style: TextStyle(
                           fontSize: 13,
-                          color: effectiveColor
-                              .withOpacity(0.7), // Softer subtitle color
+                          color: effectiveColor.withOpacity(0.7),
                         ),
                       ),
                     ]
@@ -1035,30 +693,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Radio button for selection indication
               Radio<String>(
-                value: value, // Use the unique value
-                groupValue: _selectedPaymentMethod, // Bind to state variable
+                value: value,
+                groupValue: _selectedPaymentMethod,
                 onChanged: isDisabled
                     ? null
                     : (String? newValue) {
                         if (newValue != null) {
-                          onTap(); // Call the onTap which handles setState
+                          onTap();
                         }
                       },
                 activeColor: colorScheme.primary,
-                materialTapTargetSize:
-                    MaterialTapTargetSize.shrinkWrap, // Compact tap area
-                visualDensity:
-                    VisualDensity.compact, // Make radio slightly smaller
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
               ),
-              // Optional: Show lock icon if disabled
-              // if (isDisabled)
-              //   Padding(
-              //     padding: const EdgeInsets.only(right: 8.0),
-              //     child: Icon(Icons.lock_outline_rounded,
-              //         color: Colors.grey.shade400, size: 20),
-              //   ),
             ],
           ),
         ),
@@ -1066,84 +714,251 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // --- Builds the Order Summary Box ---
-  Widget _buildOrderSummary() {
-    // Use listen: true here if summary needs to update live (e.g., coupon applied)
-    // If only read once when building the step, listen: false is fine.
-    // For simplicity, using listen: true is safer if cart changes are possible.
-    final cartProvider = Provider.of<CartProvider>(context);
-
-    // Example delivery fee logic (make this more sophisticated if needed)
-    final double deliveryFee = cartProvider.totalPrice > 0 ? 100.0 : 0.0;
-    final double totalWithDelivery = cartProvider.totalPrice + deliveryFee;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color:
-                Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Checkout'),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Order Summary',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildSummaryRow(
-            label:
-                'Subtotal (${cartProvider.totalItemsCount} ${cartProvider.totalItemsCount == 1 ? "item" : "items"})',
-            value: 'Rs.${cartProvider.totalPrice.toStringAsFixed(2)}',
-          ),
-          const SizedBox(height: 8),
-          _buildSummaryRow(
-            label: 'Delivery Fee',
-            value: deliveryFee > 0
-                ? 'Rs.${deliveryFee.toStringAsFixed(2)}'
-                : 'Free',
-            valueColor: deliveryFee > 0
-                ? null
-                : Colors.green.shade700, // Highlight 'Free'
-          ),
-          const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
-          _buildSummaryRow(
-            label: 'Total Amount',
-            value: 'Rs.${totalWithDelivery.toStringAsFixed(2)}',
-            isTotal: true, // Make total stand out
-          ),
-        ],
+      body: Consumer<CartProvider>(
+        builder: (context, cartProvider, child) {
+          if (cartProvider.items.isEmpty) {
+            return const Center(
+              child: Text('Your cart is empty'),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text(
+                'Delivery Address',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: InkWell(
+                  onTap: () async {
+                    final address = await Navigator.push<Address>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CheckoutAddressScreen(
+                          onAddressSelected: (address) {
+                            setState(() {
+                              selectedAddress = address;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                    if (address != null) {
+                      setState(() {
+                        selectedAddress = address;
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: selectedAddress == null
+                        ? const Row(
+                            children: [
+                              Icon(Icons.add_location_alt_outlined),
+                              SizedBox(width: 8),
+                              Text('Select Delivery Address'),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selectedAddress!.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(selectedAddress!.phone),
+                              const SizedBox(height: 4),
+                              Text(selectedAddress!.addressLine1),
+                              if (selectedAddress!.addressLine2 != null) ...[
+                                const SizedBox(height: 4),
+                                Text(selectedAddress!.addressLine2!),
+                              ],
+                              const SizedBox(height: 4),
+                              Text(
+                                  '${selectedAddress!.city}, ${selectedAddress!.state} ${selectedAddress!.zipCode}'),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Order Summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...cartProvider.items.values.map((item) {
+                return ListTile(
+                  leading: item.imageUrl != null
+                      ? Image.network(
+                          item.imageUrl!,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        )
+                      : const Icon(Icons.image_not_supported),
+                  title: Text(item.name),
+                  subtitle: Text('Quantity: ${item.quantity}'),
+                  trailing: Text(
+                    'Rs.${(item.price * item.quantity).toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }).toList(),
+              const Divider(),
+              ListTile(
+                title: const Text(
+                  'Subtotal',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: Text(
+                  'Rs.${cartProvider.totalPrice.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ListTile(
+                title: const Text(
+                  'Delivery Fee',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: const Text(
+                  'Rs.50.00',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ListTile(
+                title: const Text(
+                  'Total',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                trailing: Text(
+                  'Rs.${(cartProvider.totalPrice + 50.0).toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildPaymentAndSummary(),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: selectedAddress == null
+                    ? null
+                    : () async {
+                        try {
+                          final orderId = uuid.v4();
+                          final List<Map<String, dynamic>> orderItemsList = [];
+
+                          for (var item in cartProvider.items.values) {
+                            orderItemsList.add({
+                              'product_id': item.id,
+                              'product_name': item.name,
+                              'quantity': item.quantity,
+                              'price': item.price,
+                            });
+                          }
+
+                          final orderData = {
+                            'id': orderId,
+                            'user_id': supabase.auth.currentUser!.id,
+                            'shipping_name': selectedAddress!.name,
+                            'shipping_phone': selectedAddress!.phone,
+                            'shipping_address_line1': selectedAddress!.addressLine1,
+                            'shipping_address_line2': selectedAddress!.addressLine2,
+                            'shipping_city': selectedAddress!.city,
+                            'shipping_state': selectedAddress!.state,
+                            'shipping_zip_code': selectedAddress!.zipCode,
+                            'payment_method': _selectedPaymentMethod,
+                            'subtotal': cartProvider.totalPrice,
+                            'delivery_fee': 50.0,
+                            'total_amount': cartProvider.totalPrice + 50.0,
+                            'status': 'Processing',
+                            'order_items': jsonEncode(orderItemsList),
+                          };
+
+                          await supabase.from('orders').insert(orderData);
+                          
+                          // Update stock
+                          for (var item in orderItemsList) {
+                            await supabase.rpc(
+                              'decrease_stock',
+                              params: {
+                                'p_product_id': item['product_id'],
+                                'p_quantity_to_decrease': item['quantity'],
+                              },
+                            );
+                          }
+
+                          cartProvider.clearCart();
+                          
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Order placed successfully!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            Navigator.pop(context);
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error placing order: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text(
+                  'Place Order',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
-
-  // Helper widget for styling order summary rows
-  Widget _buildSummaryRow(
-      {required String label,
-      required String value,
-      Color? valueColor,
-      bool isTotal = false}) {
-    final textTheme = Theme.of(context).textTheme;
-    final labelStyle = isTotal
-        ? textTheme.titleMedium
-            ?.copyWith(fontWeight: FontWeight.bold) // Bolder total label
-        : textTheme.bodyMedium?.copyWith(color: Colors.grey[700]);
-    final valueStyle = isTotal
-        ? textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold, // Bolder total value
-            color: valueColor ?? Theme.of(context).colorScheme.primary)
-        : textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: valueColor); // Slightly bolder regular value
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: labelStyle),
-        Text(value, style: valueStyle),
-      ],
-    );
-  }
-} // End of _CheckoutScreenState
+}

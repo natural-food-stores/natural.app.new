@@ -1,5 +1,6 @@
 // services/product_service.dart
-import 'dart:io';
+import 'dart:io' as io;
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/product.dart'; // Adjust path if needed
@@ -176,8 +177,7 @@ class ProductService {
   // -----------------------------------------------
 
   // --- Existing uploadImage method ---
-  Future<String?> uploadImage(File imageFile, String fileName) async {
-    // ... (uploadImage code remains the same) ...
+  Future<String?> uploadImage(io.File imageFile, String fileName) async {
     if (kIsWeb) {
       debugPrint(
           'uploadImage called on web, which is not supported with File type.');
@@ -188,10 +188,13 @@ class ProductService {
           '${DateTime.now().millisecondsSinceEpoch}_${fileName.replaceAll(' ', '_')}';
 
       debugPrint('Uploading image to bucket: $_storageBucket, path: $filePath');
+      
+      // Convert File to Uint8List
+      final Uint8List fileBytes = await imageFile.readAsBytes();
 
-      await _supabase.storage.from(_storageBucket).upload(
+      await _supabase.storage.from(_storageBucket).uploadBinary(
             filePath,
-            imageFile,
+            fileBytes,
             fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
           );
 

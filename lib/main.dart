@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart'; // <-- Import google_fonts
 import 'screens/welcome_screen.dart';
 import 'screens/main_screen.dart';
 import 'providers/cart_provider.dart'; // Your CartProvider path
+import 'providers/address_provider.dart'; // Add AddressProvider import
 
 const String supabaseUrl = 'https://ubnqsjeciseaisghyljq.supabase.co';
 const String supabaseAnonKey =
@@ -34,9 +35,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Provide CartProvider to the widget tree
-    return ChangeNotifierProvider(
-      create: (context) => CartProvider(),
+    // Provide multiple providers to the widget tree
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+        ChangeNotifierProvider(create: (context) => AddressProvider()),
+      ],
       child: MaterialApp(
         title: 'Natural Food Store', // Or your app's title
         debugShowCheckedModeBanner: false, // Hide debug banner

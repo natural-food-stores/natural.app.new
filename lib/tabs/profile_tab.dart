@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../main.dart'; // To access supabase client
 import '../admin/admin_dashboard_screen.dart'; // Import admin screen
 import '../screens/order_history_screen.dart'; // Import the order history screen
+import '../screens/saved_addresses_screen.dart'; // Import the saved addresses screen
+import '../screens/faqs_page.dart'; // Import the FAQs page
+import '../screens/contact_us_page.dart'; // Import the Contact Us page
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -85,10 +88,12 @@ class ProfileTab extends StatelessWidget {
             title: 'Saved Addresses',
             subtitle: 'Manage your delivery addresses',
             onTap: () {
-              // TODO: Navigate to Address Management Screen
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content:
-                      Text('Navigate to Saved Addresses (Not Implemented)')));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SavedAddressesScreen(),
+                ),
+              );
             },
           ),
           _buildProfileOption(
@@ -128,21 +133,26 @@ class ProfileTab extends StatelessWidget {
             title: 'Help & Support',
             subtitle: 'Get assistance',
             onTap: () {
-              // TODO: Navigate to Help Screen or show contact info
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content:
-                      Text('Navigate to Help & Support (Not Implemented)')));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ContactUsPage(),
+                ),
+              );
             },
           ),
           _buildProfileOption(
             context,
-            icon: Icons.feedback_outlined,
-            title: 'Send Feedback',
-            subtitle: 'Help us improve the app',
+            icon: Icons.question_answer_outlined,
+            title: 'FAQs',
+            subtitle: 'Frequently asked questions',
             onTap: () {
-              // TODO: Implement feedback mechanism
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Send Feedback (Not Implemented)')));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FaqsPage(),
+                ),
+              );
             },
           ),
           // --- Admin Panel Section (Only show for admin@admin.com) ---
