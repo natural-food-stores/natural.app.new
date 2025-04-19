@@ -130,6 +130,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _saveAddress() async {
     // Validate required fields
     if (_nameController.text.isEmpty ||
+    
         _phoneController.text.isEmpty ||
         _addressLine1Controller.text.isEmpty ||
         _cityController.text.isEmpty ||
