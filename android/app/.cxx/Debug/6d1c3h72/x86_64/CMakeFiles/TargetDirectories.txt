@@ -1,0 +1,2 @@
+C:/Users/Yash Avsarmal/Downloads/Natural-Main/naturalfoodstore/android/app/.cxx/Debug/6d1c3h72/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Yash Avsarmal/Downloads/Natural-Main/naturalfoodstore/android/app/.cxx/Debug/6d1c3h72/x86_64/CMakeFiles/rebuild_cache.dir
